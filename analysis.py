@@ -5,7 +5,7 @@ import scipy.spatial
 import numpy as np
 import math
 import struct
-from ds9 import DS9
+from pyds9 import DS9;D=DS9()
 
 
 class quad_set:
@@ -95,6 +95,9 @@ class quad_set:
 
     def quadpts(self, key):
         return self.xymat[self.quads[key]]
+
+    def display(self, ds=D):
+        ds.set_pyfits(self.fitsfd)
 
 
 def setup():
