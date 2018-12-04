@@ -8,12 +8,13 @@
 #include <unistd.h> 
 #include <fcntl.h>
 
-#define DIFF_THRESH 1e-100
+#define DIFF_THRESH 1e-2
 
 struct quad_set
 {
 	float *quads;
-	size_t sz;
+	size_t sz; //size of array in bytes
+	size_t nquads; //number of quads=sz/16
 };
 
 
@@ -28,29 +29,29 @@ void load_quads(const char *fname, struct quad_set *qs)
 	
 	fseek(qfd, 0L, SEEK_END);
 	qs->sz = ftell(qfd);
+	qs->nquads = qs->sz/16;
 	rewind(qfd);
 	
 	qs->quads = (float *) malloc(qs->sz);
-	fread( qs->quads, 4, qs->sz/4, qfd );
+	fread( qs->quads, 4, qs->sz, qfd );
 	fclose(qfd);
 }
 
 void match_quads( struct quad_set *qa1, struct quad_set *qa2 )
 {
 	int count=0;
-	for(int idx1=0; idx1<qa1->sz; idx1=idx1+=4)
+	for(int idx1=0; idx1<qa1->nquads; idx1++)
 	{
-		for(int idx2=0; idx2 < qa2->sz; idx2+=4)
+		for(int idx2=0; idx2 < qa2->nquads; idx2++)
 		{
-			if( is_suspect( &qa1->quads[idx1] ) )
+			if( is_suspect( &qa1->quads[idx1*4] ) )
 				continue;
-			if( is_close_quad( &qa1->quads[idx1], &qa2->quads[idx2] ) )
+			if( is_close_quad( &qa1->quads[idx1*4], &qa2->quads[idx2*4] ) )
 			{
-				printf("%i %i\n", idx1/4, idx2/4);
+				printf("%i %i\n", idx1, idx2);
 				count++;
-				print_quad( &qa1->quads[idx1] );
-				print_quad( &qa2->quads[idx2] );
-				return;
+				print_quad( &qa1->quads[idx1*4] );
+				print_quad( &qa2->quads[idx2*4] );
 			}
 		}
 	}
@@ -90,7 +91,7 @@ bool is_close_quad( float quad1[], float quad2[] )
 
 bool is_close_number(float num1, float num2)
 {
-	return (abs(num1 - num2) > DIFF_THRESH);
+	return (fabs(num1 - num2) > DIFF_THRESH);
 }
 
 int print_quad(float *quad)
@@ -112,10 +113,10 @@ int main(int argc, char ** argv)
 	struct quad_set qa1, qa2;
 	load_quads("pointing0064_merged.bin", &qa1);
 	load_quads("skv625064874090.bin", &qa2);
-	for (int ii=0; ii<24; ii+=4)
-		print_quad(&qa1.quads[ii]);
-	printf("%li\n", qa1.sz/4);
-	//match_quads(&qa1, &qa2);
+	//for (int ii=0; ii<24; ii+=4)
+		//print_quad(&qa2.quads[ii]);
+	printf("%li\n", qa2.sz);
+	match_quads(&qa1, &qa2);
 	free(qa1.quads);
 	free(qa2.quads);
 }

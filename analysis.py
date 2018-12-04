@@ -131,7 +131,7 @@ def compare_quads( rquads1, rquads2 ):
                 isclose.append((i1, i2))
         if time.time()-t0 > 4*60:
             break
-
+    print(i1, i2)
     return isclose
 
 
