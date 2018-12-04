@@ -10,15 +10,15 @@ from pyds9 import DS9;D=DS9()
 
 class quad_set:
 
-    def __init__( self, fname="pointing0064_merged.fits" ):
-        self.xymat = self.sextract(fname)
+    def __init__( self, fname="pointing0064_merged.fits", thresh=5.0 ):
+        self.xymat = self.sextract(fname, thresh)
         self.quads = self.make_quads(self.xymat)
         self.rquads = self.allhash(self.quads, self.xymat)
 
 
-    def sextract(self, fname="pointing0064_merged.fits"):
+    def sextract(self, fname="pointing0064_merged.fits", thresh=5.0):
         self.fitsfd = fits.open(fname)
-        objs = m4k_imclient.getobjects(self.fitsfd[0].data)
+        objs = m4k_imclient.getobjects(self.fitsfd[0].data, thresh)
         self.df = m4k_imclient.mkdataframe(objs)
 
         xymat = self.df[["xpeak", "ypeak"]].as_matrix()
@@ -32,7 +32,7 @@ class quad_set:
         cpxymat = xymat.copy()
         while len(cpxymat) > 4:
 
-            cpquad = scipy.spatial.KDTree(cpxymat).query(cpxymat[0], 4)[1]
+            cpquad = scipy.spatial.KDTree(cpxymat).query( cpxymat[0], 4 )[1]
             quad = []
             #get xymat index
             for ii in [0, 1, 2, 3]:
@@ -92,6 +92,11 @@ class quad_set:
                 pts.append(self.quadhash(xymat[q]))
             return np.array(pts)
 
+    def binhash(self):
+        bts = b''
+        for q in self.rquads:
+            bts += struct.pack("4f", *q)
+        return bts
 
     def quadpts(self, key):
         return self.xymat[self.quads[key]]
@@ -99,9 +104,19 @@ class quad_set:
     def display(self, ds=D):
         ds.set_pyfits(self.fitsfd)
 
+    def draw_quad(self, idx, ds=D):
+        qps = self.__getitem__(idx)
+        for pts in qps:
+            D.set("regions command {{circle {} {} 5}}".format(*pts))
+
+    def draw_all(self):
+        for pt in self.xymat:
+            x, y = pt
+            D.set("regions command {{circle {} {} 5}}".format(x, y))
+
 
 def setup():
-    return quad_set(), quad_set("skv610397485522.fits")
+    return quad_set(), quad_set("skv625064874090.fits", thresh=20.0)
 
 
 def compare_quads( rquads1, rquads2 ):
