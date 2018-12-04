@@ -8,7 +8,7 @@
 #include <unistd.h> 
 #include <fcntl.h>
 
-#define DIFF_THRESH 1e-2
+#define DIFF_THRESH 1e-4
 
 struct quad_set
 {
@@ -50,8 +50,8 @@ void match_quads( struct quad_set *qa1, struct quad_set *qa2 )
 			{
 				printf("%i %i\n", idx1, idx2);
 				count++;
-				print_quad( &qa1->quads[idx1*4] );
-				print_quad( &qa2->quads[idx2*4] );
+				//print_quad( &qa1->quads[idx1*4] );
+				//print_quad( &qa2->quads[idx2*4] );
 			}
 		}
 	}
@@ -113,10 +113,22 @@ int main(int argc, char ** argv)
 	struct quad_set qa1, qa2;
 	load_quads("pointing0064_merged.bin", &qa1);
 	load_quads("skv625064874090.bin", &qa2);
+
+	MPI_Init(&argc, &argv);
+
+	int rank, size, ii, jj;
+	
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	printf("%i \n", size);
+
 	//for (int ii=0; ii<24; ii+=4)
 		//print_quad(&qa2.quads[ii]);
-	printf("%li\n", qa2.sz);
-	match_quads(&qa1, &qa2);
+	//printf("%li\n", qa2.sz);
+	//match_quads(&qa1, &qa2);
+	
+	MPI_Finalize();
 	free(qa1.quads);
 	free(qa2.quads);
 }

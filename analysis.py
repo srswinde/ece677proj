@@ -12,8 +12,9 @@ class quad_set:
 
     def __init__( self, fname="pointing0064_merged.fits", thresh=5.0 ):
         self.xymat = self.sextract(fname, thresh)
-        self.quads = self.make_quads(self.xymat)
+        self.quads = self.make_quads2(self.xymat)
         self.rquads = self.allhash(self.quads, self.xymat)
+        self.fname = fname
 
 
     def sextract(self, fname="pointing0064_merged.fits", thresh=5.0):
@@ -40,9 +41,35 @@ class quad_set:
                     (xymat == cpxymat[cpquad[ii]]).all(axis=1))[0])
                 quad.append( idx )
             quads.append( quad )
-            cpxymat = np.delete(cpxymat, cpquad, 0)
+            cpxymat = np.delete( cpxymat, cpquad, 0 )
 
         return quads
+
+    def make_quads2(self, xymat=None):
+        if xymat is None: xymat = self.xymat
+        quads = []
+        cpxymat = xymat.copy()
+        ptree = scipy.spatial.KDTree(cpxymat)
+        width, height = self.fitsfd[0].data.shape
+        radius = math.sqrt((width//10)**2 + (height//10)**2)
+        #10x10 grid to make quads in
+        xs = scipy.linspace(0, width, 10, dtype=int)
+        ys = scipy.linspace(0, height, 10, dtype=int)
+        gridpoints = []
+        
+        for x in xs.ravel():
+            for y in ys.ravel():
+                pts = ptree.query_ball_point( (x, y), r=radius)
+                for pt1 in pts:
+                    for pt2 in pts[:3]:
+                        if pt1 == pt2: continue
+                        for pt3 in pts[:3]:
+                            if len(set((pt1, pt2, pt3))) != 3: continue
+                            for pt4 in pts[:3]:
+                                if len(set((pt1, pt2, pt3, pt4))) != 4: continue
+                                quads.append(np.array([pt1, pt2, pt3, pt4], dtype=int))
+
+        return np.array(quads)
 
 
     def plot_quads(self, quads, xymat):
@@ -114,6 +141,10 @@ class quad_set:
             x, y = pt
             D.set("regions command {{circle {} {} 5}}".format(x, y))
 
+    def save(self):
+        basename = self.fname.split('.')[0]
+        with open(basename+".bin", "wb") as binfd:
+            binfd.write(self.binhash())
 
 def setup():
     return quad_set(), quad_set("skv625064874090.fits", thresh=20.0)
@@ -156,3 +187,15 @@ def check(qs1, qs2, matches):
     plt.imshow(qs1.fitsfd[0].data[minx1:maxx1, miny1:maxy1])
     fig2=plt.figure()
     plt.imshow(qs1.fitsfd[0].data[minx2:maxx2, miny2:maxy2])
+
+
+def runtest():
+    fname1 = "pointing0064_merged.fits"
+    fname2 = "skv625064874090.fits"
+    q1 = quad_set(fname1)
+    q2 = quad_set(fname2)
+    q1.save()
+    q2.save()
+
+    print( compare_quads(q1, q2) )
+    return q1, q2
