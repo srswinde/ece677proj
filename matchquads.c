@@ -23,6 +23,19 @@ bool is_close_quad(float *, float *);
 bool is_close_number(float, float);
 bool is_suspect(float *);
 
+
+/****************************************************
+ * load_quads
+ * Args: 
+ * 	fname: name of the quad file to load
+ * 	quad_set: structure to load the quad file into
+ *
+ * Description:
+ * 	The quads created by analysis.py are stored into
+ * 	binary files. Each quad is a set of consecutive
+ * 	4 byte floating point numbers. Using fread 
+ * 	we populate the qs->quads array.
+****************************************************/
 void load_quads(const char *fname, struct quad_set *qs)
 {
 	FILE * qfd = fopen(fname, "rb");
@@ -37,10 +50,13 @@ void load_quads(const char *fname, struct quad_set *qs)
 	fclose(qfd);
 }
 
-void match_quads( struct quad_set *qa1, struct quad_set *qa2 )
+void match_quads( struct quad_set *qa1, struct quad_set *qa2, int rank, int size )
 {
 	int count=0;
-	for(int idx1=0; idx1<qa1->nquads; idx1++)
+	int start = rank*(qa1->nquads/size);
+	int stop = start+(qa1->nquads/size);
+
+	for(int idx1=start; idx1<stop; idx1++)
 	{
 		for(int idx2=0; idx2 < qa2->nquads; idx2++)
 		{
@@ -50,8 +66,6 @@ void match_quads( struct quad_set *qa1, struct quad_set *qa2 )
 			{
 				printf("%i %i\n", idx1, idx2);
 				count++;
-				//print_quad( &qa1->quads[idx1*4] );
-				//print_quad( &qa2->quads[idx2*4] );
 			}
 		}
 	}
@@ -121,14 +135,10 @@ int main(int argc, char ** argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	printf("%i \n", size);
 
-	//for (int ii=0; ii<24; ii+=4)
-		//print_quad(&qa2.quads[ii]);
-	//printf("%li\n", qa2.sz);
-	//match_quads(&qa1, &qa2);
+	match_quads(&qa1, &qa2, rank, size);
 	
 	MPI_Finalize();
-	free(qa1.quads);
-	free(qa2.quads);
+	free( qa1.quads );
+	free( qa2.quads );
 }
