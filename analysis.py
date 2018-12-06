@@ -8,16 +8,32 @@ import struct
 from pyds9 import DS9;D=DS9()
 
 
-class quad_set:
 
+class quad_set:
+    """
+        Class to analyze image and build quads from stellar sources.
+    """
     def __init__( self, fname="pointing0064_merged.fits", thresh=5.0 ):
+        """
+        Load the image and extract stellar sources them using SEP
+        any my own repo at:
+        https://github.com/srswinde/fits_solver
+        """
+
+        #numpy array of pixel coordinates of sources
         self.xymat = self.sextract(fname, thresh)
+
         self.quads = self.make_quads2(self.xymat)
+
+        # create an array of quads in the geometrically hashed form.
         self.rquads = self.allhash(self.quads, self.xymat)
         self.fname = fname
 
 
     def sextract(self, fname="pointing0064_merged.fits", thresh=5.0):
+        """
+            Do the Source Extraction
+        """
         self.fitsfd = fits.open(fname)
         objs = m4k_imclient.getobjects(self.fitsfd[0].data, thresh)
         self.df = m4k_imclient.mkdataframe(objs)
@@ -28,7 +44,9 @@ class quad_set:
 
 
     def make_quads(self, xymat):
-
+        """
+        Old make quads. Uses each star only once.
+        """
         quads = []
         cpxymat = xymat.copy()
         while len(cpxymat) > 4:
@@ -46,6 +64,11 @@ class quad_set:
         return quads
 
     def make_quads2(self, xymat=None):
+        """
+        creates a 10 x 10 grid of sections of the image
+        All quads are taken from within these cells of data.
+        """
+
         if xymat is None: xymat = self.xymat
         quads = []
         cpxymat = xymat.copy()
@@ -56,7 +79,7 @@ class quad_set:
         xs = scipy.linspace(0, width, 10, dtype=int)
         ys = scipy.linspace(0, height, 10, dtype=int)
         gridpoints = []
-        
+
         for x in xs.ravel():
             for y in ys.ravel():
                 pts = ptree.query_ball_point( (x, y), r=radius)
@@ -197,5 +220,5 @@ def runtest():
     q1.save()
     q2.save()
 
-    print( compare_quads(q1, q2) )
+    #print( compare_quads(q1, q2) )
     return q1, q2

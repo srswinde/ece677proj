@@ -50,6 +50,20 @@ void load_quads(const char *fname, struct quad_set *qs)
 	fclose(qfd);
 }
 
+
+/****************************************************
+* matchquads
+* Args:
+* 	qa1: set of quads in test image
+* 	qa2: set of quads in reference image. 
+* 	rank: the rank of the process
+* 	size: the total number of processes
+* Description:
+*	Element wise comparison of a set of quads as 
+*	to determine equivalence within a threshold
+* 	(DIFF_TRESH)
+ 
+****************************************************/
 void match_quads( struct quad_set *qa1, struct quad_set *qa2, int rank, int size )
 {
 	int count=0;
@@ -125,9 +139,11 @@ int print_quad(float *quad)
 int main(int argc, char ** argv)
 {
 	struct quad_set qa1, qa2;
+	//Read in the quads
 	load_quads("pointing0064_merged.bin", &qa1);
 	load_quads("skv625064874090.bin", &qa2);
 
+	
 	MPI_Init(&argc, &argv);
 
 	int rank, size, ii, jj;
@@ -135,7 +151,7 @@ int main(int argc, char ** argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-
+	//Do the matching. 
 	match_quads(&qa1, &qa2, rank, size);
 	
 	MPI_Finalize();
