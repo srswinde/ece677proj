@@ -7,6 +7,7 @@
 #include <sys/time.h> 
 #include <unistd.h> 
 #include <fcntl.h>
+#include <sys/time.h>
 
 #define DIFF_THRESH 1e-4
 
@@ -50,20 +51,6 @@ void load_quads(const char *fname, struct quad_set *qs)
 	fclose(qfd);
 }
 
-
-/****************************************************
-* matchquads
-* Args:
-* 	qa1: set of quads in test image
-* 	qa2: set of quads in reference image. 
-* 	rank: the rank of the process
-* 	size: the total number of processes
-* Description:
-*	Element wise comparison of a set of quads as 
-*	to determine equivalence within a threshold
-* 	(DIFF_TRESH)
- 
-****************************************************/
 void match_quads( struct quad_set *qa1, struct quad_set *qa2, int rank, int size )
 {
 	int count=0;
@@ -98,6 +85,16 @@ bool is_suspect( float quad[] )
 		return true;
 
 	return false;
+}
+
+/**
+ * Returns the current time in microseconds.
+ */
+long getMicrotime()
+{
+	struct timeval currentTime;
+	gettimeofday(&currentTime, NULL);
+	return currentTime.tv_sec * (int)1e6 + currentTime.tv_usec;
 }
 
 bool is_close_quad( float quad1[], float quad2[] )
@@ -139,22 +136,22 @@ int print_quad(float *quad)
 int main(int argc, char ** argv)
 {
 	struct quad_set qa1, qa2;
-	//Read in the quads
+	long timer;
 	load_quads("pointing0064_merged.bin", &qa1);
 	load_quads("skv625064874090.bin", &qa2);
 
-	
 	MPI_Init(&argc, &argv);
-
+	timer = getMicrotime();
 	int rank, size, ii, jj;
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	//Do the matching. 
+
 	match_quads(&qa1, &qa2, rank, size);
 	
 	MPI_Finalize();
+	printf("THET %i %f", size, getMicrotime()-timer);
 	free( qa1.quads );
 	free( qa2.quads );
 }
